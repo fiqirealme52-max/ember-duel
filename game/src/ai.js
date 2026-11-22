@@ -1,6 +1,7 @@
 // ai.js — the opponent of Ember Duel. One job: pick the foe's card with a policy a
-// player can read and counter, never at random.
-import { elementBonus } from './deck.js';
+// player can read and counter, never at random. The pick is locked in before the
+// player chooses, so the telegraph on the table is always the card really played.
+import { ELEMENTS, elementBonus } from './deck.js';
 
 function attackCards(hand) {
   return hand.filter((card) => card.kind === 'attack');
@@ -10,13 +11,22 @@ function firstOf(hand, kind) {
   return hand.find((card) => card.kind === kind) || null;
 }
 
-function strongestAttack(hand, beatsElement) {
+/** The element whose attacks beat the given element, for counter advice. */
+export function elementThatBeats(elementKey) {
+  if (!elementKey) return null;
+  return Object.values(ELEMENTS).find((element) => element.beats === elementKey) || null;
+}
+
+function strongestAttack(hand, beatsElement, chainElement) {
   const attacks = attackCards(hand);
   if (attacks.length === 0) return null;
   let best = attacks[0];
   let bestScore = -1;
   for (const card of attacks) {
-    const score = card.value + elementBonus(card.element, beatsElement) * 2;
+    let score = card.value + elementBonus(card.element, beatsElement) * 2;
+    // Continuing the foe's own chain is worth a lot: the multiplier doubles,
+    // then triples, the damage — so a chain card beats a slightly bigger one.
+    if (chainElement && card.element === chainElement) score += 4;
     if (score > bestScore) {
       bestScore = score;
       best = card;
@@ -32,7 +42,7 @@ function strongestAttack(hand, beatsElement) {
  * 2. Shield when life is low and the player's last attack was heavy.
  * 3. Set up Ganda when a big attack is held for next round.
  * 4. Otherwise play the strongest attack, preferring the element that beats the
- *    element the player just played.
+ *    element the player just played, and preferring to continue its own chain.
  * 5. With only specials left, shield first, then heal, then set up.
  */
 export function chooseFoeCard(state) {
@@ -53,7 +63,7 @@ export function chooseFoeCard(state) {
   const bigAttack = attackCards(hand).find((card) => card.value >= 7);
   if (ganda && bigAttack && !foe.doubleNext) return ganda;
 
-  const attack = strongestAttack(hand, elementKey);
+  const attack = strongestAttack(hand, elementKey, foe.chain ? foe.chain.element : null);
   if (attack) return attack;
 
   if (shield) return shield;
@@ -62,10 +72,20 @@ export function chooseFoeCard(state) {
   return hand[0];
 }
 
-/** What the foe is likely to do next, told to the player before the round. */
+/**
+ * What the foe is about to do, read off the locked-in telegraph — never a guess.
+ * Tells the player how to counter it: the beating element, or a special instead.
+ */
 export function foeTell(state) {
-  if (state.foe.life <= 12) return 'Lawan terluka — ia mungkin memulihkan diri.';
-  if (state.foe.doubleNext) return 'Lawan menyiapkan serangan ganda!';
-  if (state.lastRound && state.lastRound.foeCard === 'Ganda') return 'Lawan baru saja menyiapkan Ganda.';
-  return 'Lawan menimbang kartunya…';
+  const tele = state.telegraph;
+  if (!tele) return 'Lawan mengocok kartunya…';
+  if (tele.kind === 'attack') {
+    const beater = elementThatBeats(tele.element);
+    const beaterName = beater ? beater.name : '';
+    const doubled = state.foe.doubleNext ? ' (Ganda aktif — serangannya ×2!)' : '';
+    return `Telegraph: lawan menyerang ${tele.name}${doubled} — counter dengan ${beaterName} atau Perisai.`;
+  }
+  if (tele.kind === 'shield') return 'Telegraph: lawan bertahan dengan Perisai — simpan serangan besarmu, mainkan Pulih atau Ganda.';
+  if (tele.kind === 'heal') return 'Telegraph: lawan memulihkan 5 life — tekan sekarang dengan serangan besarmu.';
+  return 'Telegraph: lawan menyiapkan Ganda — habisi sebelum serangannya berlipat ronde depan.';
 }

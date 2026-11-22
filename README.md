@@ -11,9 +11,17 @@ sides start at 30 life with a hand of 5 cards from a 42-card deck. Each round bo
 sides reveal one card at once: attack cards carry an element (Api, Angin, Bumi, Air)
 in a beating cycle worth +2 when it counters the foe's element, and the loser of the
 round takes the difference as damage. Perisai blocks all damage for a round, Pulih
-restores 5 life, and Ganda doubles your next round's attack. The AI plays a readable
-policy — it heals when hurt, shields against heavy attacks, and sets up Ganda before
-a big hit — so every hand is a decision you can play around.
+restores 5 life, and Ganda doubles your next round's attack. Two mechanics make every
+hand a readable decision. **Chain combo:** playing attack cards of the same element
+on consecutive rounds multiplies the damage — the second in a row hits ×2, the
+third ×3 — and the chain meter on the table shows the running element and the next
+multiplier; a different element or a special card breaks the chain, for both sides.
+**Telegraph:** the foe locks in its next card before you choose, and the banner above
+the table shows it — element, value and intent — so you can counter with the element
+that beats it, block with Perisai, or save your big attack while the foe shields.
+The AI plays a readable policy — it heals when hurt, shields against heavy attacks,
+builds chains of its own, and sets up Ganda before a big hit — so every hand is a
+decision you can play around.
 
 ## Run
 

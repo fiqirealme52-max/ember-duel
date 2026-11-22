@@ -47,7 +47,9 @@ function playCard(cardId) {
   const card = state.player.hand.find((held) => held.id === cardId);
   if (!card) return;
   playFlip();
-  const foeCard = chooseFoeCard(state);
+  // The foe's card was locked in before this round (the telegraph on the table);
+  // the player chooses against a card that cannot change any more.
+  const foeCard = state.telegraph || chooseFoeCard(state);
   const summary = resolveRound(state, card, foeCard);
   if (summary.playerHealed > 0 || summary.foeHealed > 0) playHeal();
   else if (summary.playerShielded || summary.foeShielded) playShield();
